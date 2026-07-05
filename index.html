@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -35,7 +35,6 @@ input,select,textarea{font-family:inherit;color:var(--ink);background:var(--pape
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--Ls);background:var(--paper);}
 .brand{display:flex;align-items:baseline;gap:8px;}
 .brand .mark{font-family:var(--fD);font-size:22px;font-weight:700;color:var(--Ad);}
-.brand .ver{font-family:var(--fM);font-size:10px;background:var(--ink);color:var(--paper);padding:2px 7px;border-radius:4px;}
 .topbar-r{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
 .save-dot{width:8px;height:8px;border-radius:50%;background:var(--L);display:inline-block;margin-right:4px;transition:background .3s;}
 .save-dot.saved{background:var(--A);}
@@ -553,7 +552,7 @@ const Stor=(()=>{
     const a=document.createElement('a');a.href=url;a.download=name;
     document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
   }
-  function exportJSON(st){dl(JSON.stringify({version:3,...st},null,2),(st.meta.name||'학급')+'_v3.json','application/json');}
+  function exportJSON(st){dl(JSON.stringify({version:3,...st},null,2),(st.meta.name||'학급')+'.json','application/json');}
   async function exportEnc(st,pw){
     const d=await Crypto.encrypt(st,pw);
     dl(JSON.stringify({version:3,encrypted:true,data:d}),(st.meta.name||'학급')+'_암호화.json','application/json');
@@ -887,7 +886,7 @@ function R(){
   ${privBadge}
   <div class="app">
     <div class="topbar">
-      <div class="brand"><span class="mark">자리배치 설계도</span><span class="ver">v3</span></div>
+      <div class="brand"><span class="mark">자리배치 프로그램</span></div>
       <div class="topbar-r">
         <span class="save-dot" id="save-dot" title="자동 저장 상태"></span>
         <button class="btn btn-sm btn-g" id="tb-undo">↩</button>
@@ -1002,7 +1001,7 @@ function rWizard(){
     foot='';
   }
   ov.innerHTML=`<div class="wiz">
-    <div class="wiz-head"><h2>자리배치 설계도 v3</h2><p>담임선생님을 위한 스마트 자리배치 시스템</p></div>
+    <div class="wiz-head"><h2>자리배치 프로그램</h2><p>담임선생님을 위한 스마트 자리배치 시스템</p></div>
     <div class="wiz-steps">${stepDots}</div>
     <div class="wiz-body">${body}</div>
     ${foot?`<div class="wiz-foot">${foot}</div>`:''}
