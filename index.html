@@ -560,7 +560,7 @@ const Stor=(()=>{
   function exportCSV(sts){
     const h=['번호','이름','성적','MBTI','시력','키','선호위치','에어컨','활동성','선호짝꿍','기피짝꿍','메모'];
     const nameOf=id=>(sts.find(x=>x.id===id)||{}).name||'';
-    const rows=sts.map(s=>[s.number,s.name,s.grade,s.mbti,s.eyesight?'Y':'N',s.height,s.preferredLocation,s.aircon,s.activity||'',(s.preferredMates||[]).map(nameOf).filter(Boolean).join('; '),nameOf(s.avoidedMate),s.memo||'']);
+    const rows=sts.map(s=>[s.number,s.name,s.grade,s.mbti,s.eyesight?'N':'Y',s.height,s.preferredLocation,s.aircon,s.activity||'',(s.preferredMates||[]).map(nameOf).filter(Boolean).join('; '),nameOf(s.avoidedMate),s.memo||'']);
     dl('\uFEFF'+[h,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n'),new Date().toLocaleDateString()+'_학생.csv','text/csv;charset=utf-8');
   }
   function parseCSV(text){
@@ -1315,7 +1315,7 @@ function importCSVStudents(text){
       Object.entries(mapping).forEach(([ci,fname])=>{
         const prop=propMap[fname];if(!prop)return;
         const v=r[headers[+ci]]||'';
-        if(prop==='eyesight')s[prop]=v.toUpperCase()==='Y';
+        if(prop==='eyesight')s[prop]=v.toUpperCase()==='N';
         else if(prop==='number')s[prop]=parseInt(v)||0;
         else s[prop]=v;
       });
