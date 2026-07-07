@@ -358,6 +358,7 @@ function vH(a,con,ctx){
   }
   return false;
 }
+function mateRankW(i){return i===0?4:i===1?2:1;}
 function sc(a,con,W,ctx,sts,rows,cols){
   const bd=[],sat={};let tot=0;
   Object.entries(a).forEach(([id,k])=>{sat[k]=id;});
@@ -373,14 +374,14 @@ function sc(a,con,W,ctx,sts,rows,cols){
   });
   if(lm){tot+=lm*W.location;bd.push({label:'선호 위치 ('+lm+'명)',pts:lm*W.location});}
   if(am){tot+=am*W.location;bd.push({label:'에어컨 선호 ('+am+'명)',pts:am*W.location});}
-  let mm=0;
+  let mp=0,mCount=0;
   ctx.pairs.forEach(([k1,k2])=>{
     const x=sat[k1],y=sat[k2];if(!x||!y)return;
     const sx=ctx.sm[x],sy=ctx.sm[y];
-    if(sx.preferredMates&&sx.preferredMates.includes(y))mm++;
-    if(sy.preferredMates&&sy.preferredMates.includes(x))mm++;
+    if(sx.preferredMates){const ix=sx.preferredMates.indexOf(y);if(ix>-1){mp+=mateRankW(ix)*W.mate;mCount++;}}
+    if(sy.preferredMates){const iy=sy.preferredMates.indexOf(x);if(iy>-1){mp+=mateRankW(iy)*W.mate;mCount++;}}
   });
-  if(mm){tot+=mm*W.mate;bd.push({label:'선호 짝꿍 ('+mm+'건)',pts:mm*W.mate});}
+  if(mCount){tot+=mp;bd.push({label:'선호 짝꿍 ('+mCount+'건)',pts:mp});}
   if(con.personalityBalance){
     let pm=0;
     ctx.pairs.forEach(([k1,k2])=>{
@@ -658,14 +659,14 @@ const Algo=(()=>{
     });
     if(lm){tot+=lm*W.location;bd.push({label:'선호 위치 ('+lm+'명)',pts:lm*W.location});}
     if(am){tot+=am*W.location;bd.push({label:'에어컨 선호 ('+am+'명)',pts:am*W.location});}
-    let mm=0;
+    let mp=0,mCount=0;
     ctx.pairs.forEach(([k1,k2])=>{
       const a=sat[k1],b=sat[k2];if(!a||!b)return;
       const sa=ctx.sm[a],sb=ctx.sm[b];
-      if(sa.preferredMates?.includes(b))mm++;
-      if(sb.preferredMates?.includes(a))mm++;
+      if(sa.preferredMates){const ia=sa.preferredMates.indexOf(b);if(ia>-1){mp+=mateRankW(ia)*W.mate;mCount++;}}
+      if(sb.preferredMates){const ib=sb.preferredMates.indexOf(a);if(ib>-1){mp+=mateRankW(ib)*W.mate;mCount++;}}
     });
-    if(mm){tot+=mm*W.mate;bd.push({label:'선호 짝꿍 ('+mm+'건)',pts:mm*W.mate});}
+    if(mCount){tot+=mp;bd.push({label:'선호 짝꿍 ('+mCount+'건)',pts:mp});}
     let av=0;
     ctx.pairs.forEach(([k1,k2])=>{
       const a=sat[k1],b=sat[k2];if(!a||!b)return;
@@ -722,7 +723,7 @@ const Algo=(()=>{
       if(dmKey){
         const dm=ctx.sm[sat[dmKey]||''];
         if(dm){
-          if(s.preferredMates?.includes(dm.id))reasons.push({t:'ok',txt:`선호 짝꿍 "${H.priv(dm)}"`});
+          if(s.preferredMates?.includes(dm.id)){const ix=s.preferredMates.indexOf(dm.id);reasons.push({t:'ok',txt:`선호 짝꿍 ${ix+1}지망 "${H.priv(dm)}"`});}
           if(s.avoidedMate===dm.id)reasons.push({t:'bad',txt:`기피 짝꿍 "${H.priv(dm)}" 인접`});
           const ea=s.mbti?.[0],eb=dm.mbti?.[0];
           if(ea&&eb&&ea!==eb)reasons.push({t:'ok',txt:`E·I 균형 짝꿍 (${ea}+${eb})`});
@@ -795,7 +796,7 @@ const Algo=(()=>{
    ╚══════════════════════════════════╝ */
 const DS=(()=>{
   let cur=null,stk=[];
-  function fresh(){return{id:'p_'+Date.now().toString(36),meta:{name:'',rows:0,cols:0,createdAt:null},grid:[],students:[],constraints:{blacklist:[],whitelist:[],fixedSeats:{},lively:[],distLevel:3,personalityBalance:true,gradeBalance:true,activityBalance:false},weights:{location:5,mate:3,personality:10,grade:10,lively:5},history:[],lastResults:null};}
+  function fresh(){return{id:'p_'+Date.now().toString(36),meta:{name:'',rows:0,cols:0,createdAt:null},grid:[],students:[],constraints:{blacklist:[],whitelist:[],fixedSeats:{},lively:[],distLevel:3,personalityBalance:true,gradeBalance:true,activityBalance:false},weights:{location:5,mate:6,personality:10,grade:10,lively:5},history:[],lastResults:null};}
   const get=()=>cur,set=s=>{cur=s;},snap=()=>{stk.push(JSON.parse(JSON.stringify(cur)));if(stk.length>25)stk.shift();};
   function undo(){if(stk.length){cur=stk.pop();return true;}return false;}
   return{fresh,get,set,snap,undo};
@@ -1308,7 +1309,7 @@ function importCSVStudents(text){
     // Auto-map
     const mapping={};
     headers.forEach((h,i)=>{const g=H.guessField(h);if(g!=='(무시)')mapping[i]=g;});
-    DS.snap();let count=0;
+    DS.snap();
     const imported=[];
     rows.forEach(r=>{
       const s={id:H.uid('s'),preferredMates:[],avoidedMate:''};
@@ -1319,11 +1320,21 @@ function importCSVStudents(text){
         else if(prop==='number')s[prop]=parseInt(v)||0;
         else s[prop]=v;
       });
-      if(s.name&&s.number){st.students.push(s);imported.push(s);count++;}
+      if(!(s.name&&s.number))return;
+      const dupIdx=imported.findIndex(x=>x.number===s.number);
+      if(dupIdx>-1){s.id=imported[dupIdx].id;imported[dupIdx]=s;}
+      else imported.push(s);
     });
+    let mergedCount=0;
+    imported.forEach(s=>{
+      const existingIdx=st.students.findIndex(x=>x.number===s.number);
+      if(existingIdx>-1){s.id=st.students[existingIdx].id;st.students[existingIdx]=s;mergedCount++;}
+      else st.students.push(s);
+    });
+    const count=imported.length;
     linkImportedMates(st,imported);
     st.students.sort((a,b)=>a.number-b.number);
-    Stor.save(st);nav('students');H.toast(`${count}명 가져오기 완료`,'suc');
+    Stor.save(st);nav('students');H.toast(mergedCount>0?`${count}명 가져오기 완료 (기존 학생 ${mergedCount}명 정보 갱신)`:`${count}명 가져오기 완료`,'suc');
   }catch(e){H.toast('CSV 파싱 실패: '+e.message,'wrn');}
 }
 
@@ -1485,7 +1496,7 @@ function rConstraints(){
   [['w-loc','location'],['w-mate','mate'],['w-per','personality'],['w-grd','grade'],['w-lv','lively']].forEach(([id,key])=>{
     document.getElementById(id)?.addEventListener('input',e=>{w[key]=+e.target.value;document.getElementById(id+'-v').textContent=e.target.value;Stor.save(st);});
   });
-  document.getElementById('w-reset')?.addEventListener('click',()=>{Object.assign(w,{location:5,mate:3,personality:10,grade:10,lively:5});Stor.save(st);rConstraints();});
+  document.getElementById('w-reset')?.addEventListener('click',()=>{Object.assign(w,{location:5,mate:6,personality:10,grade:10,lively:5});Stor.save(st);rConstraints();});
 }
 
 function wSlider(id,label,val,min,max){
